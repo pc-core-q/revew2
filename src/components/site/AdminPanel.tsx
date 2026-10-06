@@ -9,14 +9,26 @@ const TEXT_FIELDS: { key: keyof SiteTexts; label: string; long?: boolean }[] = [
   { key: "brand", label: "اسم الموقع" },
   { key: "heroTitle", label: "العنوان الرئيسي" },
   { key: "heroDescription", label: "وصف الواجهة", long: true },
-  { key: "heroCta", label: "نص الزر" },
+  { key: "heroCta", label: "نص زر الواجهة" },
   { key: "aboutTitle", label: "عنوان من نحن" },
   { key: "aboutText", label: "نص من نحن", long: true },
   { key: "servicesTitle", label: "عنوان الخدمات" },
   { key: "portfolioTitle", label: "عنوان الأعمال" },
-  { key: "contactPhone", label: "رقم الهاتف" },
+  { key: "contactPhone", label: "رقم الهاتف الظاهر" },
+  { key: "whatsappNumber", label: "رقم الواتساب للتواصل (مثال: 9647700000000)" },
   { key: "contactEmail", label: "البريد الإلكتروني" },
   { key: "contactAddress", label: "العنوان" },
+
+  // حقول الإحصائيات
+  { key: "statsProjects", label: "إحصائية: عدد المشاريع المنجزة (مثال: +15)" },
+  { key: "statsVisitors", label: "إحصائية: عدد الزوار اليدوي (مثال: +2,500)" },
+  { key: "statsSatisfaction", label: "إحصائية: نسبة الرضا (مثال: 100%) " },
+  { key: "statsUptime", label: "إحصائية: الاستقرار والسرعة (مثال: 99.9%)" },
+
+  // حقول الأسعار
+  { key: "priceStarter", label: "سعر باقة الانطلاق (مثال: 150$ أو 200 ألف)" },
+  { key: "pricePro", label: "سعر الباقة الاحترافية (مثال: 300$ أو 400 ألف)" },
+  { key: "priceCustom", label: "سعر الباقة المخصصة (مثال: حسب الطلب)" },
 ];
 
 type Props = {
@@ -145,7 +157,7 @@ export function AdminPanel({ open, onClose, texts, projects, saveTexts, addProje
             <div className="mb-6 flex gap-2 rounded-xl bg-muted p-1">
               {(["projects", "texts"] as const).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-card text-primary shadow-soft" : "text-muted-foreground"}`}>
-                  {t === "projects" ? "المشاريع" : "نصوص الموقع"}
+                  {t === "projects" ? "المشاريع" : "نصوص الموقع والأسعار"}
                 </button>
               ))}
             </div>
@@ -208,9 +220,9 @@ export function AdminPanel({ open, onClose, texts, projects, saveTexts, addProje
                   <label key={f.key} className={`space-y-1 text-sm font-medium ${f.long ? "md:col-span-2" : ""}`}>
                     <span>{f.label}</span>
                     {f.long ? (
-                      <textarea rows={3} value={draft[f.key]} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} className={input} />
+                      <textarea rows={3} value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} className={input} />
                     ) : (
-                      <input value={draft[f.key]} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} className={input} />
+                      <input value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} className={input} />
                     )}
                   </label>
                 ))}
