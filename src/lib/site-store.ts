@@ -10,6 +10,16 @@ export type Project = {
   url: string;
 };
 
+export type PricingPlan = {
+  id: string;
+  name: string;
+  price: string;
+  currency: "IQD" | "USD";
+  description: string;
+  features: string[];
+  popular?: boolean;
+};
+
 export type SiteTexts = {
   brand: string;
   heroTitle: string;
@@ -29,11 +39,6 @@ export type SiteTexts = {
   statsVisitors: string;
   statsSatisfaction: string;
   statsUptime: string;
-
-  // أسعار الباقات
-  priceStarter: string;
-  pricePro: string;
-  priceCustom: string;
 };
 
 export const DEFAULT_TEXTS: SiteTexts = {
@@ -52,17 +57,55 @@ export const DEFAULT_TEXTS: SiteTexts = {
   contactAddress: "كربلاء، العراق",
   whatsappNumber: "9647700000000",
 
-  // القيم الافتراضية للإحصائيات
   statsProjects: "+15",
   statsVisitors: "+2,500",
   statsSatisfaction: "100%",
   statsUptime: "99.9%",
-
-  // القيم الافتراضية للأسعار (يمكنك تعديل العملة والنص كما تحب)
-  priceStarter: "150$",
-  pricePro: "300$",
-  priceCustom: "حسب الطلب",
 };
+
+export const DEFAULT_PLANS: PricingPlan[] = [
+  {
+    id: "plan-1",
+    name: "باقة الانطلاق",
+    price: "150",
+    currency: "USD",
+    description: "مثالية للمشاريع الناشئة ومتاجر الإنستغرام",
+    features: [
+      "تصميم متجر سريع ومتوافق مع الهاتف",
+      "ربط زر الشراء المباشر عبر واتساب",
+      "استضافة سريعة ومجانية",
+      "إطلاق خلال 3 أيام",
+    ],
+    popular: false,
+  },
+  {
+    id: "plan-2",
+    name: "الباقة الاحترافية",
+    price: "350,000",
+    currency: "IQD",
+    description: "الأكثر طلباً للمحلات والعلامات التجارية",
+    features: [
+      "منتجات وتصنيفات غير محدودة",
+      "لوحة تحكم لإدارة المنتجات والطلبات",
+      "ربط الدفع الإلكتروني وشركات الشحن",
+      "دعم فني وتدريب متواصل بالفيديو",
+    ],
+    popular: true,
+  },
+  {
+    id: "plan-3",
+    name: "باقة مخصصة",
+    price: "اتصل بنا",
+    currency: "USD",
+    description: "للأنظمة والشركات الكبيرة",
+    features: [
+      "برمجة وهوية خاصة بالكامل",
+      "ربط مع أنظمة المحاسبة والمخازن",
+      "سيرفرات فائقة الأداء",
+    ],
+    popular: false,
+  },
+];
 
 export const DEFAULT_PROJECTS: Project[] = [
   {
@@ -89,21 +132,32 @@ export const DEFAULT_PROJECTS: Project[] = [
 ];
 
 type ProjectsRecord = Record<string, Omit<Project, "id">>;
+type PlansRecord = Record<string, Omit<PricingPlan, "id">>;
 
 function recordToProjects(record: ProjectsRecord | null): Project[] {
   if (!record) return [];
   return Object.entries(record).map(([id, p]) => ({ id, ...p }));
 }
 
-/** Reads site data from Firebase Realtime Database with live listeners, and seeds defaults on first run. */
+function recordToPlans(record: PlansRecord | null): PricingPlan[] {
+  if (!record) return [];
+  return Object.entries(record).map(([id, p]) => ({
+    id,
+    ...p,
+    features: Array.isArray(p.features) ? p.features : [],
+  }));
+}
+
 export function useSiteData() {
   const [texts, setTexts] = useState<SiteTexts>(DEFAULT_TEXTS);
   const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
+  const [plans, setPlans] = useState<PricingPlan[]>(DEFAULT_PLANS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let unsubTexts: (() => void) | undefined;
     let unsubProjects: (() => void) | undefined;
+    let unsubPlans: (() => void) | undefined;
     let cancelled = false;
 
     getDb().then((db) => {
@@ -112,10 +166,8 @@ export function useSiteData() {
       unsubTexts = onValue(ref(db, "texts"), (snap) => {
         const val = snap.val() as Partial<SiteTexts> | null;
         if (val) {
-          // دمج القيم الافتراضية مع القيم القادمة من السيرفر لضمان عدم حدوث undefined عند إضافة حقول جديدة
           setTexts({ ...DEFAULT_TEXTS, ...val });
         } else {
-          // First run: seed default texts
           set(ref(db, "texts"), DEFAULT_TEXTS).catch(() => {});
         }
         setLoading(false);
@@ -126,7 +178,6 @@ export function useSiteData() {
         if (val) {
           setProjects(recordToProjects(val));
         } else {
-          // First run: seed default projects
           const seed: ProjectsRecord = {};
           for (const p of DEFAULT_PROJECTS) {
             const { id, ...rest } = p;
@@ -135,12 +186,27 @@ export function useSiteData() {
           set(ref(db, "projects"), seed).catch(() => {});
         }
       });
+
+      unsubPlans = onValue(ref(db, "plans"), (snap) => {
+        const val = snap.val() as PlansRecord | null;
+        if (val) {
+          setPlans(recordToPlans(val));
+        } else {
+          const seed: PlansRecord = {};
+          for (const pl of DEFAULT_PLANS) {
+            const { id, ...rest } = pl;
+            seed[id] = rest;
+          }
+          set(ref(db, "plans"), seed).catch(() => {});
+        }
+      });
     });
 
     return () => {
       cancelled = true;
       unsubTexts?.();
       unsubProjects?.();
+      unsubPlans?.();
     };
   }, []);
 
@@ -159,5 +225,15 @@ export function useSiteData() {
     await remove(ref(db, `projects/${id}`));
   }, []);
 
-  return { texts, projects, loading, saveTexts, addProject, removeProject };
+  const addPlan = useCallback(async (p: Omit<PricingPlan, "id">) => {
+    const db = await getDb();
+    await push(ref(db, "plans"), p);
+  }, []);
+
+  const removePlan = useCallback(async (id: string) => {
+    const db = await getDb();
+    await remove(ref(db, `plans/${id}`));
+  }, []);
+
+  return { texts, projects, plans, loading, saveTexts, addProject, removeProject, addPlan, removePlan };
 }
