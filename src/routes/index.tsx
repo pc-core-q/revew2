@@ -227,19 +227,25 @@ function Index() {
         </div>
       </section>
 
-      {/* قسم باقات الأسعار - تصميم مدمج وأفقي للهواتف وشبكة للحاسوب */}
+      {/* قسم باقات الأسعار */}
       <section id="pricing" className="mx-auto max-w-6xl px-4 py-10 sm:py-14 md:py-20">
-        <div className="reveal mb-6 text-center sm:mb-10">
+        <div className="reveal mb-4 text-center sm:mb-8">
           <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">باقات إنشاء المتاجر</h2>
           <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">اختر الباقة المناسبة لحجم تجارتك وابدأ البيع فوراً</p>
+
+          {/* مؤشر السحب لهواتف والتابلت */}
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary md:hidden animate-pulse">
+            <span>اسحب لمعاينة باقي الباقات</span>
+            <span className="text-sm font-bold">←</span>
+          </div>
         </div>
 
-        {/* على الموبايل: تمرير أفقي سلس وسريع snap-x / على التابلت والحاسوب: grid */}
-        <div className="flex gap-4 overflow-x-auto px-1 pb-4 pt-3 snap-x snap-mandatory md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:p-0">
+        {/* عرض البطاقات بحجم 78vw لإبراز طرف البطاقة التالية وتشجيع التمرير */}
+        <div className="flex gap-3 overflow-x-auto px-1 pb-4 pt-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:p-0">
           {plans.map((tier) => (
             <div
               key={tier.id}
-              className={`reveal relative flex min-w-[85vw] max-w-[85vw] shrink-0 snap-center flex-col justify-between rounded-2xl border p-5 transition duration-300 sm:min-w-[340px] sm:max-w-none md:min-w-0 md:max-w-none md:p-6 ${
+              className={`reveal relative flex min-w-[78vw] max-w-[78vw] shrink-0 snap-center flex-col justify-between rounded-2xl border p-5 transition duration-300 sm:min-w-[320px] sm:max-w-none md:min-w-0 md:max-w-none md:p-6 ${
                 tier.popular
                   ? "border-primary bg-card shadow-lift ring-2 ring-primary/40 md:-translate-y-2"
                   : "border-border bg-card/70 hover:shadow-soft"
@@ -252,7 +258,6 @@ function Index() {
               )}
 
               <div>
-                {/* الهيدر: الاسم والسعر مدمجان لتوفير المساحة الرأسية */}
                 <div className="flex items-start justify-between gap-2 border-b pb-4">
                   <div>
                     <h3 className="text-lg font-bold sm:text-xl">{tier.name}</h3>
@@ -268,7 +273,6 @@ function Index() {
                   </div>
                 </div>
 
-                {/* المزايا */}
                 <ul className="mt-4 space-y-2 text-xs sm:text-sm">
                   {tier.features?.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2">
@@ -279,7 +283,6 @@ function Index() {
                 </ul>
               </div>
 
-              {/* زر الحجز */}
               <a
                 href={getPackageOrderLink(tier.name)}
                 target="_blank"
@@ -404,7 +407,7 @@ function Index() {
         </div>
       </footer>
 
-      {/* زر واتساب العائم السريع */}
+      {/* زر واتساب العائم */}
       <a
         href={whatsappLink}
         target="_blank"
