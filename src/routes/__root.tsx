@@ -78,11 +78,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "theme-color", content: "#0f172a" },
+      { title: "متجرك الرقمي | تصميم وبرمجة متاجر إلكترونية احترافية" },
+      {
+        name: "description",
+        content: "نصمم ونبني متاجر إلكترونية سريعة ومتكاملة تدعم الطلب السريع والدفع الإلكتروني لزيادة مبيعاتك.",
+      },
+
+      // بطاقات Open Graph (واتساب، تيليجرام، فيسبوك)
+      { property: "og:type", content: "website" },
+      { property: "og:locale", content: "ar_AR" },
+      { property: "og:site_name", content: "متجرك الرقمي" },
+      { property: "og:title", content: "متجرك الرقمي | تصميم وبرمجة متاجر إلكترونية احترافية" },
+      {
+        property: "og:description",
+        content: "انقل تجارتك إلى الإنترنت بمتجر متكامل وسريع وجاهز لاستقبال الطلبات.",
+      },
+      { property: "og:image", content: "/hero.jpg" },
+
+      // بطاقات تويتر
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "متجرك الرقمي | متاجر إلكترونية جاهزة" },
+      {
+        name: "twitter:description",
+        content: "انقل تجارتك إلى الإنترنت بمتجر متكامل وسريع وجاهز لاستقبال الطلبات.",
+      },
+      { name: "twitter:image", content: "/hero.jpg" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
