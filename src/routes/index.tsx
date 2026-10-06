@@ -124,7 +124,7 @@ function Index() {
         </nav>
       </header>
 
-      {/* قسم الواجهة (Hero) - متناسق مع الموبايل والتابلت */}
+      {/* قسم الواجهة (Hero) */}
       <section id="top" className="bg-gradient-hero">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 md:grid-cols-2 md:py-20">
           <div className="reveal space-y-4 text-center md:text-right">
@@ -167,7 +167,7 @@ function Index() {
         </div>
       </section>
 
-      {/* قسم الإحصائيات والأرقام - شبكة مدمجة للموبايل */}
+      {/* قسم الإحصائيات والأرقام */}
       <section className="border-y bg-card/60 py-6 backdrop-blur-sm sm:py-8">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 px-4 md:grid-cols-4">
           <div className="reveal flex flex-col items-center p-2 text-center">
@@ -227,53 +227,64 @@ function Index() {
         </div>
       </section>
 
-      {/* قسم باقات الأسعار (ديناميكية بالكامل مع دعم الدينار والدولار) */}
-      <section id="pricing" className="mx-auto max-w-6xl px-4 py-12 sm:py-16 md:py-20">
-        <div className="reveal mb-10 text-center sm:mb-14">
+      {/* قسم باقات الأسعار - تصميم مدمج وأفقي للهواتف وشبكة للحاسوب */}
+      <section id="pricing" className="mx-auto max-w-6xl px-4 py-10 sm:py-14 md:py-20">
+        <div className="reveal mb-6 text-center sm:mb-10">
           <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">باقات إنشاء المتاجر</h2>
-          <p className="mt-2 text-xs text-muted-foreground sm:text-sm">اختر الباقة المناسبة لحجم تجارتك وابدأ البيع فوراً</p>
+          <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">اختر الباقة المناسبة لحجم تجارتك وابدأ البيع فوراً</p>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+
+        {/* على الموبايل: تمرير أفقي سلس وسريع snap-x / على التابلت والحاسوب: grid */}
+        <div className="flex gap-4 overflow-x-auto px-1 pb-4 pt-3 snap-x snap-mandatory md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:p-0">
           {plans.map((tier) => (
             <div
               key={tier.id}
-              className={`reveal relative flex flex-col justify-between rounded-2xl border p-6 transition duration-300 sm:rounded-3xl sm:p-7 ${
+              className={`reveal relative flex min-w-[85vw] max-w-[85vw] shrink-0 snap-center flex-col justify-between rounded-2xl border p-5 transition duration-300 sm:min-w-[340px] sm:max-w-none md:min-w-0 md:max-w-none md:p-6 ${
                 tier.popular
                   ? "border-primary bg-card shadow-lift ring-2 ring-primary/40 md:-translate-y-2"
-                  : "border-border bg-card/60 hover:shadow-soft"
+                  : "border-border bg-card/70 hover:shadow-soft"
               }`}
             >
               {tier.popular && (
-                <span className="absolute -top-3 right-1/2 translate-x-1/2 rounded-full bg-gradient-primary px-3 py-0.5 text-[11px] font-bold text-primary-foreground shadow-sm">
+                <span className="absolute -top-3 right-6 rounded-full bg-gradient-primary px-3 py-0.5 text-[11px] font-bold text-primary-foreground shadow-sm">
                   الأكثر طلباً
                 </span>
               )}
+
               <div>
-                <h3 className="text-xl font-bold sm:text-2xl">{tier.name}</h3>
-                <div className="mt-3 flex items-baseline gap-1.5">
-                  <span className="text-3xl font-extrabold text-primary sm:text-4xl">{tier.price}</span>
-                  <span className="text-sm font-semibold text-muted-foreground">
-                    {tier.currency === "IQD" ? "د.ع" : "$"}
-                  </span>
+                {/* الهيدر: الاسم والسعر مدمجان لتوفير المساحة الرأسية */}
+                <div className="flex items-start justify-between gap-2 border-b pb-4">
+                  <div>
+                    <h3 className="text-lg font-bold sm:text-xl">{tier.name}</h3>
+                    {tier.description && (
+                      <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{tier.description}</p>
+                    )}
+                  </div>
+                  <div className="text-left shrink-0">
+                    <span className="text-2xl font-extrabold text-primary sm:text-3xl">{tier.price}</span>
+                    <span className="mr-1 text-xs font-semibold text-muted-foreground">
+                      {tier.currency === "IQD" ? "د.ع" : "$"}
+                    </span>
+                  </div>
                 </div>
-                {tier.description && (
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{tier.description}</p>
-                )}
-                <div className="my-5 h-px w-full bg-border" />
-                <ul className="space-y-2.5 text-xs sm:text-sm">
+
+                {/* المزايا */}
+                <ul className="mt-4 space-y-2 text-xs sm:text-sm">
                   {tier.features?.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                      <span>{feature}</span>
+                      <span className="text-neutral-700 dark:text-neutral-300 leading-snug">{feature}</span>
                     </li>
                   ))}
                 </ul>
               </div>
+
+              {/* زر الحجز */}
               <a
                 href={getPackageOrderLink(tier.name)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`mt-6 block w-full rounded-xl py-2.5 text-center text-xs font-bold transition sm:py-3 sm:text-sm ${
+                className={`mt-6 block w-full rounded-xl py-2.5 text-center text-xs font-bold transition sm:text-sm ${
                   tier.popular
                     ? "bg-gradient-primary text-primary-foreground shadow-lift hover:opacity-90"
                     : "bg-muted text-foreground hover:bg-muted/80"
