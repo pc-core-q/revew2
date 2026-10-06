@@ -22,6 +22,18 @@ export type SiteTexts = {
   contactPhone: string;
   contactEmail: string;
   contactAddress: string;
+  whatsappNumber: string;
+
+  // الإحصائيات
+  statsProjects: string;
+  statsVisitors: string;
+  statsSatisfaction: string;
+  statsUptime: string;
+
+  // أسعار الباقات
+  priceStarter: string;
+  pricePro: string;
+  priceCustom: string;
 };
 
 export const DEFAULT_TEXTS: SiteTexts = {
@@ -37,7 +49,19 @@ export const DEFAULT_TEXTS: SiteTexts = {
   portfolioTitle: "أعمالنا",
   contactPhone: "+964 770 000 0000",
   contactEmail: "info@example.com",
-  contactAddress: "بغداد، العراق",
+  contactAddress: "كربلاء، العراق",
+  whatsappNumber: "9647700000000",
+
+  // القيم الافتراضية للإحصائيات
+  statsProjects: "+15",
+  statsVisitors: "+2,500",
+  statsSatisfaction: "100%",
+  statsUptime: "99.9%",
+
+  // القيم الافتراضية للأسعار (يمكنك تعديل العملة والنص كما تحب)
+  priceStarter: "150$",
+  pricePro: "300$",
+  priceCustom: "حسب الطلب",
 };
 
 export const DEFAULT_PROJECTS: Project[] = [
@@ -88,6 +112,7 @@ export function useSiteData() {
       unsubTexts = onValue(ref(db, "texts"), (snap) => {
         const val = snap.val() as Partial<SiteTexts> | null;
         if (val) {
+          // دمج القيم الافتراضية مع القيم القادمة من السيرفر لضمان عدم حدوث undefined عند إضافة حقول جديدة
           setTexts({ ...DEFAULT_TEXTS, ...val });
         } else {
           // First run: seed default texts
