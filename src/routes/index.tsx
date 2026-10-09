@@ -336,7 +336,7 @@ function Index() {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="reveal group block overflow-hidden rounded-2xl border bg-card transition duration-300 hover:-translate-y-1 hover:shadow-lift"
+                className="group block overflow-hidden rounded-2xl border bg-card transition duration-300 hover:-translate-y-1 hover:shadow-lift"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-muted">
                   {p.image && (
