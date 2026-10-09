@@ -131,21 +131,55 @@ export const DEFAULT_PROJECTS: Project[] = [
   },
 ];
 
-type ProjectsRecord = Record<string, Omit<Project, "id">>;
-type PlansRecord = Record<string, Omit<PricingPlan, "id">>;
-
-function recordToProjects(record: ProjectsRecord | null): Project[] {
+// دالة آمنة لتحويل كائنات أو مصفوفات المشاريع
+function recordToProjects(record: any): Project[] {
   if (!record) return [];
-  return Object.entries(record).map(([id, p]) => ({ id, ...p }));
+  if (Array.isArray(record)) {
+    return record.filter(Boolean).map((p, index) => ({
+      id: p.id || `p_${index}`,
+      name: p.name || "",
+      description: p.description || "",
+      image: p.image || "",
+      url: p.url || "#",
+    }));
+  }
+  return Object.entries(record).map(([id, p]: [string, any]) => ({
+    id,
+    name: p?.name || "",
+    description: p?.description || "",
+    image: p?.image || "",
+    url: p?.url || "#",
+  }));
 }
 
-function recordToPlans(record: PlansRecord | null): PricingPlan[] {
+// دالة آمنة ومرنة لتحويل الباقات وقراءة الميزات مهما كان شكلها القادم من Firebase
+function recordToPlans(record: any): PricingPlan[] {
   if (!record) return [];
-  return Object.entries(record).map(([id, p]) => ({
-    id,
-    ...p,
-    features: Array.isArray(p.features) ? p.features : [],
-  }));
+
+  const rawList = Array.isArray(record)
+    ? record.filter(Boolean).map((p, i) => ({ id: p.id || `plan_${i}`, ...p }))
+    : Object.entries(record).map(([id, p]: [string, any]) => ({ id, ...p }));
+
+  return rawList.map((p) => {
+    let parsedFeatures: string[] = [];
+    if (Array.isArray(p.features)) {
+      parsedFeatures = p.features.filter(Boolean).map(String);
+    } else if (typeof p.features === "string") {
+      parsedFeatures = p.features.split("\n").map((s: string) => s.trim()).filter(Boolean);
+    } else if (typeof p.features === "object" && p.features !== null) {
+      parsedFeatures = Object.values(p.features).map(String).filter(Boolean);
+    }
+
+    return {
+      id: String(p.id),
+      name: p.name || "",
+      price: String(p.price || ""),
+      currency: (p.currency === "IQD" ? "IQD" : "USD") as "IQD" | "USD",
+      description: p.description || "",
+      features: parsedFeatures,
+      popular: Boolean(p.popular),
+    };
+  });
 }
 
 export function useSiteData() {
@@ -160,47 +194,52 @@ export function useSiteData() {
     let unsubPlans: (() => void) | undefined;
     let cancelled = false;
 
-    getDb().then((db) => {
-      if (cancelled) return;
+    getDb()
+      .then((db) => {
+        if (cancelled || !db) return;
 
-      unsubTexts = onValue(ref(db, "texts"), (snap) => {
-        const val = snap.val() as Partial<SiteTexts> | null;
-        if (val) {
-          setTexts({ ...DEFAULT_TEXTS, ...val });
-        } else {
-          set(ref(db, "texts"), DEFAULT_TEXTS).catch(() => {});
-        }
+        unsubTexts = onValue(ref(db, "texts"), (snap) => {
+          const val = snap.val();
+          if (val && Object.keys(val).length > 0) {
+            setTexts({ ...DEFAULT_TEXTS, ...val });
+          } else {
+            set(ref(db, "texts"), DEFAULT_TEXTS).catch(() => {});
+          }
+          setLoading(false);
+        });
+
+        unsubProjects = onValue(ref(db, "projects"), (snap) => {
+          const val = snap.val();
+          if (val && Object.keys(val).length > 0) {
+            setProjects(recordToProjects(val));
+          } else {
+            const seed: Record<string, any> = {};
+            for (const p of DEFAULT_PROJECTS) {
+              const { id, ...rest } = p;
+              seed[id] = rest;
+            }
+            set(ref(db, "projects"), seed).catch(() => {});
+          }
+        });
+
+        unsubPlans = onValue(ref(db, "plans"), (snap) => {
+          const val = snap.val();
+          if (val && Object.keys(val).length > 0) {
+            setPlans(recordToPlans(val));
+          } else {
+            const seed: Record<string, any> = {};
+            for (const pl of DEFAULT_PLANS) {
+              const { id, ...rest } = pl;
+              seed[id] = rest;
+            }
+            set(ref(db, "plans"), seed).catch(() => {});
+          }
+        });
+      })
+      .catch((err) => {
+        console.error("Firebase connection error in useSiteData:", err);
         setLoading(false);
       });
-
-      unsubProjects = onValue(ref(db, "projects"), (snap) => {
-        const val = snap.val() as ProjectsRecord | null;
-        if (val) {
-          setProjects(recordToProjects(val));
-        } else {
-          const seed: ProjectsRecord = {};
-          for (const p of DEFAULT_PROJECTS) {
-            const { id, ...rest } = p;
-            seed[id] = rest;
-          }
-          set(ref(db, "projects"), seed).catch(() => {});
-        }
-      });
-
-      unsubPlans = onValue(ref(db, "plans"), (snap) => {
-        const val = snap.val() as PlansRecord | null;
-        if (val) {
-          setPlans(recordToPlans(val));
-        } else {
-          const seed: PlansRecord = {};
-          for (const pl of DEFAULT_PLANS) {
-            const { id, ...rest } = pl;
-            seed[id] = rest;
-          }
-          set(ref(db, "plans"), seed).catch(() => {});
-        }
-      });
-    });
 
     return () => {
       cancelled = true;
@@ -227,7 +266,17 @@ export function useSiteData() {
 
   const addPlan = useCallback(async (p: Omit<PricingPlan, "id">) => {
     const db = await getDb();
-    await push(ref(db, "plans"), p);
+    // تحويل الميزات إلى مصفوفة نظيفة قبل الرفع لتجنب حفظها كنصوص معطوبة
+    const cleanFeatures = Array.isArray(p.features)
+      ? p.features
+      : typeof p.features === "string"
+      ? (p.features as string).split("\n").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    await push(ref(db, "plans"), {
+      ...p,
+      features: cleanFeatures,
+    });
   }, []);
 
   const removePlan = useCallback(async (id: string) => {
@@ -235,5 +284,15 @@ export function useSiteData() {
     await remove(ref(db, `plans/${id}`));
   }, []);
 
-  return { texts, projects, plans, loading, saveTexts, addProject, removeProject, addPlan, removePlan };
+  return {
+    texts,
+    projects,
+    plans,
+    loading,
+    saveTexts,
+    addProject,
+    removeProject,
+    addPlan,
+    removePlan,
+  };
 }
