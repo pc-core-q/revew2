@@ -77,9 +77,11 @@ const TESTIMONIALS = [
 ];
 
 function Index() {
-  const { texts, projects, plans, saveTexts, addProject, removeProject, addPlan, removePlan } = useSiteData();
+  const { texts, projects, plans, loading, saveTexts, addProject, removeProject, addPlan, removePlan } = useSiteData();
   const [adminOpen, setAdminOpen] = useState(false);
-  useReveal([projects.length, plans.length]);
+  
+  // إعادة تشغيل المراقبة كلما تغير عدد الباقات أو المشاريع
+  useReveal([projects.length, plans.length, loading]);
 
   const whatsappLink = `https://wa.me/${texts.whatsappNumber || "9647700000000"}?text=${encodeURIComponent(
     "مرحباً، أود الاستفسار عن تفاصيل تصميم متجر إلكتروني معك."
@@ -240,63 +242,84 @@ function Index() {
           </div>
         </div>
 
-        {/* عرض البطاقات بحجم 78vw لإبراز طرف البطاقة التالية وتشجيع التمرير */}
+        {/* عرض البطاقات */}
         <div className="flex gap-3 overflow-x-auto px-1 pb-4 pt-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:p-0">
-          {plans.map((tier) => (
-            <div
-              key={tier.id}
-              className={`reveal relative flex min-w-[78vw] max-w-[78vw] shrink-0 snap-center flex-col justify-between rounded-2xl border p-5 transition duration-300 sm:min-w-[320px] sm:max-w-none md:min-w-0 md:max-w-none md:p-6 ${
-                tier.popular
-                  ? "border-primary bg-card shadow-lift ring-2 ring-primary/40 md:-translate-y-2"
-                  : "border-border bg-card/70 hover:shadow-soft"
-              }`}
-            >
-              {tier.popular && (
-                <span className="absolute -top-3 right-6 rounded-full bg-gradient-primary px-3 py-0.5 text-[11px] font-bold text-primary-foreground shadow-sm">
-                  الأكثر طلباً
-                </span>
-              )}
-
-              <div>
-                <div className="flex items-start justify-between gap-2 border-b pb-4">
-                  <div>
-                    <h3 className="text-lg font-bold sm:text-xl">{tier.name}</h3>
-                    {tier.description && (
-                      <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{tier.description}</p>
-                    )}
-                  </div>
-                  <div className="text-left shrink-0">
-                    <span className="text-2xl font-extrabold text-primary sm:text-3xl">{tier.price}</span>
-                    <span className="mr-1 text-xs font-semibold text-muted-foreground">
-                      {tier.currency === "IQD" ? "د.ع" : "$"}
-                    </span>
-                  </div>
-                </div>
-
-                <ul className="mt-4 space-y-2 text-xs sm:text-sm">
-                  {tier.features?.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="text-neutral-700 dark:text-neutral-300 leading-snug">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <a
-                href={getPackageOrderLink(tier.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`mt-6 block w-full rounded-xl py-2.5 text-center text-xs font-bold transition sm:text-sm ${
+          {plans && plans.length > 0 ? (
+            plans.map((tier) => (
+              <div
+                key={tier.id}
+                className={`relative flex min-w-[78vw] max-w-[78vw] shrink-0 snap-center flex-col justify-between rounded-2xl border p-5 transition duration-300 sm:min-w-[320px] sm:max-w-none md:min-w-0 md:max-w-none md:p-6 ${
                   tier.popular
-                    ? "bg-gradient-primary text-primary-foreground shadow-lift hover:opacity-90"
-                    : "bg-muted text-foreground hover:bg-muted/80"
+                    ? "border-primary bg-card shadow-lift ring-2 ring-primary/40 md:-translate-y-2"
+                    : "border-border bg-card/70 hover:shadow-soft"
                 }`}
               >
-                طلب هذه الباقة
-              </a>
-            </div>
-          ))}
+                {tier.popular && (
+                  <span className="absolute -top-3 right-6 rounded-full bg-gradient-primary px-3 py-0.5 text-[11px] font-bold text-primary-foreground shadow-sm">
+                    الأكثر طلباً
+                  </span>
+                )}
+
+                <div>
+                  <div className="flex items-start justify-between gap-2 border-b pb-4">
+                    <div>
+                      <h3 className="text-lg font-bold sm:text-xl">{tier.name}</h3>
+                      {tier.description && (
+                        <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{tier.description}</p>
+                      )}
+                    </div>
+                    <div className="text-left shrink-0">
+                      <span className="text-2xl font-extrabold text-primary sm:text-3xl">{tier.price}</span>
+                      <span className="mr-1 text-xs font-semibold text-muted-foreground">
+                        {tier.currency === "IQD" || tier.currency === ("د.ع" as any) ? "د.ع" : "$"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <ul className="mt-4 space-y-2 text-xs sm:text-sm">
+                    {tier.features && tier.features.length > 0 ? (
+                      tier.features.map((feature, i) => (
+                        <li key={i} className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                          <span className="text-neutral-700 dark:text-neutral-300 leading-snug">{feature}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-xs text-muted-foreground">لا توجد مزايا مسجلة</li>
+                    )}
+                  </ul>
+                </div>
+
+                <a
+                  href={getPackageOrderLink(tier.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-6 block w-full rounded-xl py-2.5 text-center text-xs font-bold transition sm:text-sm ${
+                    tier.popular
+                      ? "bg-gradient-primary text-primary-foreground shadow-lift hover:opacity-90"
+                      : "bg-muted text-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  طلب هذه الباقة
+                </a>
+              </div>
+            ))
+          ) : (
+            /* حالة الهيكل أثناء التحميل لتجنب المساحة الفارغة تماماً */
+            [1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="flex min-w-[78vw] max-w-[78vw] shrink-0 animate-pulse flex-col justify-between rounded-2xl border border-border bg-card/40 p-5 sm:min-w-[320px] md:min-w-0 md:max-w-none"
+              >
+                <div className="space-y-4">
+                  <div className="h-6 w-1/2 rounded bg-muted"></div>
+                  <div className="h-4 w-3/4 rounded bg-muted/60"></div>
+                  <div className="h-20 w-full rounded bg-muted/40"></div>
+                </div>
+                <div className="mt-6 h-10 w-full rounded-xl bg-muted"></div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
