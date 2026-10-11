@@ -265,7 +265,7 @@ function Index() {
                     <div>
                       <h3 className="text-lg font-bold sm:text-xl">{tier.name}</h3>
                       {tier.description && (
-                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{tier.description}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
                       )}
                     </div>
                     <div className="text-left shrink-0">
