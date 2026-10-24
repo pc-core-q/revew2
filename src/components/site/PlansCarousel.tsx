@@ -1,11 +1,90 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import type { Plan } from "@/lib/site-store";
+import { WhatsAppIcon, whatsappHref } from "./WhatsAppButton";
+
+/** Features shown before the "show all" toggle, so cards stay short and even. */
+const PREVIEW = 4;
+
+function PlanCard({ plan, whatsappNumber }: { plan: Plan; whatsappNumber: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const extra = Math.max(0, plan.features.length - PREVIEW);
+  const shown = expanded ? plan.features : plan.features.slice(0, PREVIEW);
+  const wa = whatsappHref(whatsappNumber, `مرحبًا، أريد الاستفسار عن "${plan.name}" (${plan.price}).`);
+
+  return (
+    <div
+      className={`relative flex w-[82vw] max-w-72 shrink-0 snap-center flex-col rounded-2xl border bg-card p-5 first:ms-auto last:me-auto sm:max-w-[19rem] ${
+        plan.featured ? "border-primary shadow-lift ring-2 ring-primary/20" : "shadow-soft"
+      }`}
+    >
+      {plan.featured && (
+        <span className="absolute -top-3 right-1/2 inline-flex translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-primary px-4 py-1 text-xs font-bold text-primary-foreground shadow-soft">
+          <Star className="h-3 w-3 fill-current" /> الأكثر طلبًا
+        </span>
+      )}
+
+      <div className="text-center">
+        <h3 className="text-base font-semibold leading-snug text-muted-foreground">{plan.name}</h3>
+        <p className="mt-2 flex flex-wrap items-baseline justify-center gap-x-1.5">
+          <span className="text-3xl font-extrabold leading-tight text-primary">{plan.price}</span>
+          {plan.period && <span className="text-base font-bold text-primary">{plan.period}</span>}
+        </p>
+        {plan.note && <p className="mt-1.5 text-sm text-muted-foreground">{plan.note}</p>}
+      </div>
+
+      <div className="my-4 border-t" />
+      {plan.footnote && <p className="-mt-1 mb-4 text-center text-xs leading-relaxed text-muted-foreground">{plan.footnote}</p>}
+
+      <div className="flex-1">
+        <ul className="space-y-2.5">
+          {shown.map((f, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm leading-snug">
+              <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+                <Check className="h-3 w-3" strokeWidth={3} />
+              </span>
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+        {extra > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="mt-3 inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-primary"
+          >
+            {expanded ? "إخفاء" : `عرض كل المميزات (+${extra})`}
+            <ChevronDown className={`h-4 w-4 transition ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
+
+      <a
+        href={wa || "#contact"}
+        {...(wa ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className={`mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 text-center font-bold transition active:scale-[0.98] ${
+          plan.featured
+            ? "bg-gradient-primary text-primary-foreground shadow-soft hover:opacity-90"
+            : "border border-primary text-primary hover:bg-accent"
+        }`}
+      >
+        {wa ? (
+          <>
+            <WhatsAppIcon className="h-5 w-5" /> اطلب عبر واتساب
+          </>
+        ) : (
+          "اطلب هذه الباقة"
+        )}
+      </a>
+    </div>
+  );
+}
 
 type Scroll = { active: number; canScroll: boolean; atStart: boolean; atEnd: boolean };
 
 /** Plans in a horizontal swipe row (scroll-snap). The page is RTL, so the first plan is on the right. */
-export function PlansCarousel({ plans }: { plans: Plan[] }) {
+export function PlansCarousel({ plans, whatsappNumber }: { plans: Plan[]; whatsappNumber: string }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [s, setS] = useState<Scroll>({ active: 0, canScroll: false, atStart: true, atEnd: false });
 
@@ -29,7 +108,7 @@ export function PlansCarousel({ plans }: { plans: Plan[] }) {
       atEnd,
       active: atEnd ? plans.length - 1 : Math.min(plans.length - 1, Math.round(pos / (step() || 1))),
     };
-    setS((prev) => (Object.keys(next) as (keyof Scroll)[]).every((k) => prev[k] === next[k]) ? prev : next);
+    setS((prev) => ((Object.keys(next) as (keyof Scroll)[]).every((k) => prev[k] === next[k]) ? prev : next));
   }, [plans.length, step]);
 
   useEffect(() => {
@@ -51,44 +130,10 @@ export function PlansCarousel({ plans }: { plans: Plan[] }) {
         ref={scroller}
         onScroll={update}
         tabIndex={0}
-        className="no-scrollbar mx-auto flex max-w-6xl snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-6 pt-5 focus-visible:outline-none sm:gap-6"
+        className="no-scrollbar mx-auto flex max-w-6xl snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-6 pt-5 focus-visible:outline-none sm:gap-5"
       >
         {plans.map((pl) => (
-          <div
-            key={pl.id}
-            className={`relative flex w-[78vw] max-w-80 shrink-0 snap-center flex-col rounded-2xl border bg-card p-6 first:ms-auto last:me-auto md:p-7 ${
-              pl.featured ? "border-primary shadow-lift ring-2 ring-primary/20" : "shadow-soft"
-            }`}
-          >
-            {pl.featured && (
-              <span className="absolute -top-3 right-1/2 inline-flex translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-primary px-4 py-1 text-xs font-bold text-primary-foreground shadow-soft">
-                <Star className="h-3 w-3 fill-current" /> الأكثر طلبًا
-              </span>
-            )}
-            <h3 className="text-xl font-bold">{pl.name}</h3>
-            <div className="mt-3 border-b pb-5">
-              <p className="text-3xl font-extrabold text-primary">{pl.price}</p>
-              {pl.period && <p className="mt-1 text-sm text-muted-foreground">{pl.period}</p>}
-            </div>
-            <ul className="my-5 flex-1 space-y-3">
-              {pl.features.map((f, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm md:text-base">
-                  <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-            <a
-              href="#contact"
-              className={`block rounded-full py-3 text-center font-bold transition active:scale-[0.98] ${
-                pl.featured
-                  ? "bg-gradient-primary text-primary-foreground shadow-soft hover:opacity-90"
-                  : "border border-primary text-primary hover:bg-accent"
-              }`}
-            >
-              اطلب هذه الباقة
-            </a>
-          </div>
+          <PlanCard key={pl.id} plan={pl} whatsappNumber={whatsappNumber} />
         ))}
       </div>
 

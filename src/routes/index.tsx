@@ -6,7 +6,7 @@ import { useSiteData } from "@/lib/site-store";
 import { useReveal } from "@/hooks/use-reveal";
 import { AdminPanel } from "@/components/site/AdminPanel";
 import { PlansCarousel } from "@/components/site/PlansCarousel";
-import { WhatsAppButton } from "@/components/site/WhatsAppButton";
+import { WhatsAppButton, WhatsAppIcon, whatsappHref } from "@/components/site/WhatsAppButton";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -56,6 +56,7 @@ function Index() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   useReveal();
+  const waLink = whatsappHref(texts.whatsappNumber, texts.whatsappMessage);
 
   return (
     <div className="min-h-dvh overflow-x-hidden">
@@ -101,7 +102,14 @@ function Index() {
               <span className="text-gradient">{texts.heroTitle}</span>
             </h1>
             <p className="text-base leading-relaxed text-muted-foreground md:text-lg">{texts.heroDescription}</p>
-            <a href="#contact" className="block w-full rounded-full bg-gradient-primary px-8 py-3.5 text-center text-lg font-bold sm:inline-block sm:w-auto text-primary-foreground shadow-lift transition hover:-translate-y-1">{texts.heroCta}</a>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
+              <a href="#contact" className="inline-flex w-full items-center justify-center rounded-full bg-gradient-primary px-8 py-3.5 text-center text-lg font-bold sm:w-auto text-primary-foreground shadow-lift transition hover:-translate-y-1">{texts.heroCta}</a>
+              {waLink && (
+                <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#128C7E] px-8 py-3.5 text-lg font-bold text-white shadow-soft transition hover:-translate-y-0.5 sm:w-auto">
+                  <WhatsAppIcon className="h-6 w-6" /> تواصل عبر واتساب
+                </a>
+              )}
+            </div>
           </div>
           <div className="reveal">
             <img src={heroImg} alt="متجر إلكتروني على الحاسوب والهاتف" width={1280} height={1024} fetchPriority="high" className="w-full rounded-2xl shadow-lift md:float-slow md:rounded-3xl" />
@@ -142,7 +150,7 @@ function Index() {
             <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">{texts.plansTitle}</h2>
             {texts.plansSubtitle && <p className="mx-auto max-w-2xl text-base text-muted-foreground md:text-lg">{texts.plansSubtitle}</p>}
           </div>
-          <PlansCarousel plans={plans} />
+          <PlansCarousel plans={plans} whatsappNumber={texts.whatsappNumber} />
         </section>
       )}
 
@@ -191,6 +199,11 @@ function Index() {
               </a>
             </li>
           </ul>
+          {waLink && (
+            <a href={waLink} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-6 font-bold text-[#0b6b5f] shadow-soft transition active:scale-[0.98] sm:w-auto md:mt-0">
+              <WhatsAppIcon className="h-5 w-5" /> تواصل عبر واتساب
+            </a>
+          )}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-2 border-t border-primary-foreground/20 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 text-center text-sm opacity-80">
           © {new Date().getFullYear()} {texts.brand}. جميع الحقوق محفوظة.

@@ -15,8 +15,12 @@ export type Plan = {
   name: string;
   /** Free text so any currency/format works, e.g. "250,000 د.ع" */
   price: string;
-  /** Optional line under the price, e.g. "دفعة واحدة" or "شهريًا" */
+  /** Shown beside the price, e.g. "/ سنويًا", "/ شهريًا" or "دفعة واحدة" */
   period: string;
+  /** Optional line under the price, e.g. "ما يعادل 12,500 د.ع شهريًا" */
+  note: string;
+  /** Optional small payment note under the divider, e.g. "الدفع سنويًا — 150,000 دينار عند الاشتراك" */
+  footnote: string;
   features: string[];
   /** Only one plan is highlighted at a time */
   featured: boolean;
@@ -90,8 +94,10 @@ export const DEFAULT_PLANS: Plan[] = [
   {
     id: "plan-1",
     name: "الأساسية",
-    price: "250,000 د.ع",
-    period: "دفعة واحدة",
+    price: "150,000 د.ع",
+    period: "/ سنويًا",
+    note: "ما يعادل 12,500 د.ع شهريًا",
+    footnote: "الدفع سنويًا — 150,000 دينار عند الاشتراك",
     features: ["متجر إلكتروني جاهز", "حتى 50 منتجًا", "تصميم متجاوب مع الهاتف", "دعم فني لمدة شهر"],
     featured: false,
     order: 0,
@@ -99,8 +105,10 @@ export const DEFAULT_PLANS: Plan[] = [
   {
     id: "plan-2",
     name: "الاحترافية",
-    price: "450,000 د.ع",
-    period: "دفعة واحدة",
+    price: "240,000 د.ع",
+    period: "/ سنويًا",
+    note: "ما يعادل 20,000 د.ع شهريًا",
+    footnote: "الدفع سنويًا — 240,000 دينار عند الاشتراك",
     features: ["كل ميزات الأساسية", "منتجات غير محدودة", "لوحة تحكم للطلبات", "ربط الطلبات بواتساب", "دعم فني لمدة 3 أشهر"],
     featured: true,
     order: 1,
@@ -108,8 +116,10 @@ export const DEFAULT_PLANS: Plan[] = [
   {
     id: "plan-3",
     name: "المتقدمة",
-    price: "700,000 د.ع",
-    period: "دفعة واحدة",
+    price: "360,000 د.ع",
+    period: "/ سنويًا",
+    note: "ما يعادل 30,000 د.ع شهريًا",
+    footnote: "الدفع سنويًا — 360,000 دينار عند الاشتراك",
     features: ["كل ميزات الاحترافية", "دومين مخصص", "تصميم حسب هوية متجرك", "تدريب كامل على الإدارة", "دعم فني لمدة 6 أشهر"],
     featured: false,
     order: 2,
@@ -128,6 +138,8 @@ function recordToPlans(record: PlansRecord): Plan[] {
       name: p.name ?? "",
       price: p.price ?? "",
       period: p.period ?? "",
+      note: p.note ?? "",
+      footnote: p.footnote ?? "",
       // Realtime Database may return arrays as objects, and drops empty arrays
       features: Array.isArray(p.features) ? p.features : Object.values(p.features ?? {}),
       featured: Boolean(p.featured),

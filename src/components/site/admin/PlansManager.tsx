@@ -15,6 +15,20 @@ type Props = {
   onDirtyChange: (dirty: boolean) => void;
 };
 
+const PERIODS = ["/ سنويًا", "/ شهريًا", "دفعة واحدة"];
+
+/** "150,000 د.ع" -> "ما يعادل 12,500 د.ع شهريًا" (annual price divided by 12). */
+function suggestMonthly(price: string): string | null {
+  const latin = price.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  const m = latin.match(/\d[\d,]*(?:\.\d+)?/);
+  if (!m || m.index === undefined) return null;
+  const amount = Number(m[0].replace(/,/g, ""));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const currency = (latin.slice(0, m.index) + latin.slice(m.index + m[0].length)).trim();
+  const monthly = Math.round(amount / 12).toLocaleString("en-US");
+  return `ما يعادل ${monthly}${currency ? ` ${currency}` : ""} شهريًا`;
+}
+
 const parseFeatures = (text: string) =>
   text
     .split("\n")
@@ -87,8 +101,9 @@ export function PlansManager({ plans, savePlan, removePlan, movePlan, setFeature
                   </div>
                   <p className="mt-0.5 text-sm font-bold text-primary">
                     {p.price}
-                    {p.period && <span className="mr-1.5 text-xs font-normal text-muted-foreground">{p.period}</span>}
+                    {p.period && <span className="mr-1.5 text-xs font-bold">{p.period}</span>}
                   </p>
+                  {p.note && <p className="text-xs text-muted-foreground">{p.note}</p>}
                   <p className="text-xs text-muted-foreground">{p.features.length} ميزة</p>
                 </div>
                 <div className="flex shrink-0 flex-col">
@@ -192,17 +207,22 @@ function PlanForm({ plan, savePlan, notify, onDirtyChange, onClose }: FormProps)
   const [name, setName] = useState(plan?.name ?? "");
   const [price, setPrice] = useState(plan?.price ?? "");
   const [period, setPeriod] = useState(plan?.period ?? "");
+  const [note, setNote] = useState(plan?.note ?? "");
+  const [footnote, setFootnote] = useState(plan?.footnote ?? "");
   const [featuresText, setFeaturesText] = useState(plan?.features.join("\n") ?? "");
   const [featured, setFeatured] = useState(plan?.featured ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const features = parseFeatures(featuresText);
+  const monthlyHint = period.includes("سنوي") ? suggestMonthly(price) : null;
   const dirty = isNew
-    ? Boolean(name || price || period || featuresText || featured)
+    ? Boolean(name || price || period || note || footnote || featuresText || featured)
     : name !== plan.name ||
       price !== plan.price ||
       period !== plan.period ||
+      note !== plan.note ||
+      footnote !== plan.footnote ||
       featured !== plan.featured ||
       features.join("\n") !== plan.features.join("\n");
 
@@ -229,6 +249,8 @@ function PlanForm({ plan, savePlan, notify, onDirtyChange, onClose }: FormProps)
         name: name.trim(),
         price: price.trim(),
         period: period.trim(),
+        note: note.trim(),
+        footnote: footnote.trim(),
         features,
         featured,
       });
@@ -264,11 +286,46 @@ function PlanForm({ plan, savePlan, notify, onDirtyChange, onClose }: FormProps)
           <span>السعر</span>
           <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="مثال: 450,000 د.ع" className={fieldClass} />
         </label>
+        <div className="space-y-1.5 text-sm font-medium md:col-span-2">
+          <label htmlFor="plan-period" className="block">
+            الفترة بجانب السعر <span className="font-normal text-muted-foreground">(اختياري)</span>
+          </label>
+          <input id="plan-period" value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="مثال: / سنويًا" className={fieldClass} />
+          <div className="flex flex-wrap gap-2 pt-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriod(period === p ? "" : p)}
+                className={`min-h-9 rounded-full border px-3.5 text-sm transition ${
+                  period === p ? "border-primary bg-accent font-semibold text-primary" : "bg-card hover:bg-muted"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1.5 text-sm font-medium md:col-span-2">
+          <label htmlFor="plan-note" className="block">
+            سطر تحت السعر <span className="font-normal text-muted-foreground">(اختياري، مثل المعادل الشهري)</span>
+          </label>
+          <input id="plan-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثال: ما يعادل 12,500 د.ع شهريًا" className={fieldClass} />
+          {monthlyHint && note !== monthlyHint && (
+            <button
+              type="button"
+              onClick={() => setNote(monthlyHint)}
+              className="min-h-9 rounded-xl bg-accent px-3 text-start text-xs font-semibold text-accent-foreground"
+            >
+              اقتراح: {monthlyHint} (اضغط للاستخدام)
+            </button>
+          )}
+        </div>
         <label className="block space-y-1.5 text-sm font-medium md:col-span-2">
           <span>
-            ملاحظة تحت السعر <span className="font-normal text-muted-foreground">(اختياري)</span>
+            ملاحظة الدفع <span className="font-normal text-muted-foreground">(اختياري، تظهر بخط صغير)</span>
           </span>
-          <input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="مثال: دفعة واحدة أو شهريًا" className={fieldClass} />
+          <input value={footnote} onChange={(e) => setFootnote(e.target.value)} placeholder="مثال: الدفع سنويًا — 150,000 دينار عند الاشتراك" className={fieldClass} />
         </label>
         <label className="block space-y-1.5 text-sm font-medium md:col-span-2">
           <span>المميزات</span>
