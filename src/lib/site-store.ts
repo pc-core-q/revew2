@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { onValue, push, ref, remove, set } from "firebase/database";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { get, onValue, push, ref, remove, set, update } from "firebase/database";
 import { getDb } from "./firebase";
 
 export type Project = {
@@ -10,14 +10,17 @@ export type Project = {
   url: string;
 };
 
-export type PricingPlan = {
+export type Plan = {
   id: string;
   name: string;
+  /** Free text so any currency/format works, e.g. "250,000 د.ع" */
   price: string;
-  currency: "IQD" | "USD";
-  description: string;
+  /** Optional line under the price, e.g. "دفعة واحدة" or "شهريًا" */
+  period: string;
   features: string[];
-  popular?: boolean;
+  /** Only one plan is highlighted at a time */
+  featured: boolean;
+  order: number;
 };
 
 export type SiteTexts = {
@@ -29,16 +32,13 @@ export type SiteTexts = {
   aboutText: string;
   servicesTitle: string;
   portfolioTitle: string;
+  plansTitle: string;
+  plansSubtitle: string;
   contactPhone: string;
   contactEmail: string;
   contactAddress: string;
   whatsappNumber: string;
-
-  // الإحصائيات
-  statsProjects: string;
-  statsVisitors: string;
-  statsSatisfaction: string;
-  statsUptime: string;
+  whatsappMessage: string;
 };
 
 export const DEFAULT_TEXTS: SiteTexts = {
@@ -52,60 +52,14 @@ export const DEFAULT_TEXTS: SiteTexts = {
     "نساعد أصحاب المتاجر المحلية على زيادة مبيعاتهم من خلال الانتقال إلى الإنترنت. نتولى التصميم والإعداد والتدريب، لتركّز أنت على منتجاتك وعملائك.",
   servicesTitle: "لماذا تختارنا؟",
   portfolioTitle: "أعمالنا",
+  plansTitle: "الباقات والأسعار",
+  plansSubtitle: "اختر الباقة المناسبة لحجم تجارتك، وكل الباقات تشمل التدريب والدعم.",
   contactPhone: "+964 770 000 0000",
   contactEmail: "info@example.com",
-  contactAddress: "كربلاء، العراق",
-  whatsappNumber: "9647700000000",
-
-  statsProjects: "+15",
-  statsVisitors: "+2,500",
-  statsSatisfaction: "100%",
-  statsUptime: "99.9%",
+  contactAddress: "بغداد، العراق",
+  whatsappNumber: "9647813623682",
+  whatsappMessage: "مرحبًا، أريد الاستفسار عن خدماتكم.",
 };
-
-export const DEFAULT_PLANS: PricingPlan[] = [
-  {
-    id: "plan-1",
-    name: "باقة الانطلاق",
-    price: "150",
-    currency: "USD",
-    description: "مثالية للمشاريع الناشئة ومتاجر الإنستغرام",
-    features: [
-      "تصميم متجر سريع ومتوافق مع الهاتف",
-      "ربط زر الشراء المباشر عبر واتساب",
-      "استضافة سريعة ومجانية",
-      "إطلاق خلال 3 أيام",
-    ],
-    popular: false,
-  },
-  {
-    id: "plan-2",
-    name: "الباقة الاحترافية",
-    price: "350,000",
-    currency: "IQD",
-    description: "الأكثر طلباً للمحلات والعلامات التجارية",
-    features: [
-      "منتجات وتصنيفات غير محدودة",
-      "لوحة تحكم لإدارة المنتجات والطلبات",
-      "ربط الدفع الإلكتروني وشركات الشحن",
-      "دعم فني وتدريب متواصل بالفيديو",
-    ],
-    popular: true,
-  },
-  {
-    id: "plan-3",
-    name: "باقة مخصصة",
-    price: "اتصل بنا",
-    currency: "USD",
-    description: "للأنظمة والشركات الكبيرة",
-    features: [
-      "برمجة وهوية خاصة بالكامل",
-      "ربط مع أنظمة المحاسبة والمخازن",
-      "سيرفرات فائقة الأداء",
-    ],
-    popular: false,
-  },
-];
 
 export const DEFAULT_PROJECTS: Project[] = [
   {
@@ -131,61 +85,70 @@ export const DEFAULT_PROJECTS: Project[] = [
   },
 ];
 
-// دالة آمنة لتحويل كائنات أو مصفوفات المشاريع
-function recordToProjects(record: any): Project[] {
-  if (!record) return [];
-  if (Array.isArray(record)) {
-    return record.filter(Boolean).map((p, index) => ({
-      id: p.id || `p_${index}`,
-      name: p.name || "",
-      description: p.description || "",
-      image: p.image || "",
-      url: p.url || "#",
-    }));
-  }
-  return Object.entries(record).map(([id, p]: [string, any]) => ({
-    id,
-    name: p?.name || "",
-    description: p?.description || "",
-    image: p?.image || "",
-    url: p?.url || "#",
-  }));
+// Sample plans shown on first run. Edit them (names, prices, features) from the admin panel.
+export const DEFAULT_PLANS: Plan[] = [
+  {
+    id: "plan-1",
+    name: "الأساسية",
+    price: "250,000 د.ع",
+    period: "دفعة واحدة",
+    features: ["متجر إلكتروني جاهز", "حتى 50 منتجًا", "تصميم متجاوب مع الهاتف", "دعم فني لمدة شهر"],
+    featured: false,
+    order: 0,
+  },
+  {
+    id: "plan-2",
+    name: "الاحترافية",
+    price: "450,000 د.ع",
+    period: "دفعة واحدة",
+    features: ["كل ميزات الأساسية", "منتجات غير محدودة", "لوحة تحكم للطلبات", "ربط الطلبات بواتساب", "دعم فني لمدة 3 أشهر"],
+    featured: true,
+    order: 1,
+  },
+  {
+    id: "plan-3",
+    name: "المتقدمة",
+    price: "700,000 د.ع",
+    period: "دفعة واحدة",
+    features: ["كل ميزات الاحترافية", "دومين مخصص", "تصميم حسب هوية متجرك", "تدريب كامل على الإدارة", "دعم فني لمدة 6 أشهر"],
+    featured: false,
+    order: 2,
+  },
+];
+
+type PlansRecord = Record<
+  string,
+  Partial<Omit<Plan, "id" | "features">> & { features?: string[] | Record<string, string> }
+>;
+
+function recordToPlans(record: PlansRecord): Plan[] {
+  return Object.entries(record)
+    .map(([id, p], i) => ({
+      id,
+      name: p.name ?? "",
+      price: p.price ?? "",
+      period: p.period ?? "",
+      // Realtime Database may return arrays as objects, and drops empty arrays
+      features: Array.isArray(p.features) ? p.features : Object.values(p.features ?? {}),
+      featured: Boolean(p.featured),
+      order: typeof p.order === "number" ? p.order : 1000 + i,
+    }))
+    .sort((a, b) => a.order - b.order);
 }
 
-// دالة آمنة ومرنة لتحويل الباقات وقراءة الميزات مهما كان شكلها القادم من Firebase
-function recordToPlans(record: any): PricingPlan[] {
+type ProjectsRecord = Record<string, Omit<Project, "id">>;
+
+function recordToProjects(record: ProjectsRecord | null): Project[] {
   if (!record) return [];
-
-  const rawList = Array.isArray(record)
-    ? record.filter(Boolean).map((p, i) => ({ id: p.id || `plan_${i}`, ...p }))
-    : Object.entries(record).map(([id, p]: [string, any]) => ({ id, ...p }));
-
-  return rawList.map((p) => {
-    let parsedFeatures: string[] = [];
-    if (Array.isArray(p.features)) {
-      parsedFeatures = p.features.filter(Boolean).map(String);
-    } else if (typeof p.features === "string") {
-      parsedFeatures = p.features.split("\n").map((s: string) => s.trim()).filter(Boolean);
-    } else if (typeof p.features === "object" && p.features !== null) {
-      parsedFeatures = Object.values(p.features).map(String).filter(Boolean);
-    }
-
-    return {
-      id: String(p.id),
-      name: p.name || "",
-      price: String(p.price || ""),
-      currency: (p.currency === "IQD" ? "IQD" : "USD") as "IQD" | "USD",
-      description: p.description || "",
-      features: parsedFeatures,
-      popular: Boolean(p.popular),
-    };
-  });
+  return Object.entries(record).map(([id, p]) => ({ id, ...p }));
 }
 
+/** Reads site data from Firebase Realtime Database with live listeners, and seeds defaults on first run. */
 export function useSiteData() {
   const [texts, setTexts] = useState<SiteTexts>(DEFAULT_TEXTS);
   const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
-  const [plans, setPlans] = useState<PricingPlan[]>(DEFAULT_PLANS);
+  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS);
+  const plansRef = useRef<Plan[]>(DEFAULT_PLANS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -194,52 +157,60 @@ export function useSiteData() {
     let unsubPlans: (() => void) | undefined;
     let cancelled = false;
 
-    getDb()
-      .then((db) => {
-        if (cancelled || !db) return;
+    getDb().then((db) => {
+      if (cancelled) return;
 
-        unsubTexts = onValue(ref(db, "texts"), (snap) => {
-          const val = snap.val();
-          if (val && Object.keys(val).length > 0) {
-            setTexts({ ...DEFAULT_TEXTS, ...val });
-          } else {
-            set(ref(db, "texts"), DEFAULT_TEXTS).catch(() => {});
-          }
-          setLoading(false);
-        });
-
-        unsubProjects = onValue(ref(db, "projects"), (snap) => {
-          const val = snap.val();
-          if (val && Object.keys(val).length > 0) {
-            setProjects(recordToProjects(val));
-          } else {
-            const seed: Record<string, any> = {};
-            for (const p of DEFAULT_PROJECTS) {
-              const { id, ...rest } = p;
-              seed[id] = rest;
-            }
-            set(ref(db, "projects"), seed).catch(() => {});
-          }
-        });
-
-        unsubPlans = onValue(ref(db, "plans"), (snap) => {
-          const val = snap.val();
-          if (val && Object.keys(val).length > 0) {
-            setPlans(recordToPlans(val));
-          } else {
-            const seed: Record<string, any> = {};
-            for (const pl of DEFAULT_PLANS) {
-              const { id, ...rest } = pl;
-              seed[id] = rest;
-            }
-            set(ref(db, "plans"), seed).catch(() => {});
-          }
-        });
-      })
-      .catch((err) => {
-        console.error("Firebase connection error in useSiteData:", err);
+      unsubTexts = onValue(ref(db, "texts"), (snap) => {
+        const val = snap.val() as Partial<SiteTexts> | null;
+        if (val) {
+          setTexts({ ...DEFAULT_TEXTS, ...val });
+        } else {
+          // First run: seed default texts
+          set(ref(db, "texts"), DEFAULT_TEXTS).catch(() => {});
+        }
         setLoading(false);
       });
+
+      unsubProjects = onValue(ref(db, "projects"), (snap) => {
+        const val = snap.val() as ProjectsRecord | null;
+        if (val) {
+          setProjects(recordToProjects(val));
+        } else {
+          // First run: seed default projects
+          const seed: ProjectsRecord = {};
+          for (const p of DEFAULT_PROJECTS) {
+            const { id, ...rest } = p;
+            seed[id] = rest;
+          }
+          set(ref(db, "projects"), seed).catch(() => {});
+        }
+      });
+
+      unsubPlans = onValue(ref(db, "plans"), async (snap) => {
+        const val = snap.val() as PlansRecord | null;
+        if (val) {
+          const list = recordToPlans(val);
+          plansRef.current = list;
+          setPlans(list);
+          return;
+        }
+        try {
+          // Empty node: seed samples only once, so deleting every plan later doesn't bring them back.
+          const seeded = await get(ref(db, "meta/plansSeeded"));
+          if (cancelled) return;
+          if (seeded.val()) {
+            plansRef.current = [];
+            setPlans([]);
+            return;
+          }
+          const seed: Record<string, Omit<Plan, "id">> = {};
+          for (const { id, ...rest } of DEFAULT_PLANS) seed[id] = rest;
+          await update(ref(db), { plans: seed, "meta/plansSeeded": true });
+        } catch {
+          // Rules may block the write; the samples stay visible locally.
+        }
+      });
+    });
 
     return () => {
       cancelled = true;
@@ -251,7 +222,8 @@ export function useSiteData() {
 
   const saveTexts = useCallback(async (t: SiteTexts) => {
     const db = await getDb();
-    await set(ref(db, "texts"), t);
+    // update() merges keys instead of replacing the whole node
+    await update(ref(db, "texts"), t);
   }, []);
 
   const addProject = useCallback(async (p: Omit<Project, "id">) => {
@@ -259,29 +231,55 @@ export function useSiteData() {
     await push(ref(db, "projects"), p);
   }, []);
 
+  /** Edits an existing project in place (only the given fields change; the key stays the same). */
+  const updateProject = useCallback(async (id: string, patch: Partial<Omit<Project, "id">>) => {
+    const db = await getDb();
+    await update(ref(db, `projects/${id}`), patch);
+  }, []);
+
   const removeProject = useCallback(async (id: string) => {
     const db = await getDb();
     await remove(ref(db, `projects/${id}`));
   }, []);
 
-  const addPlan = useCallback(async (p: Omit<PricingPlan, "id">) => {
+  /** Adds (id = null) or edits a plan. Highlighting a plan automatically un-highlights the others. */
+  const savePlan = useCallback(async (id: string | null, data: Omit<Plan, "id" | "order">) => {
     const db = await getDb();
-    // تحويل الميزات إلى مصفوفة نظيفة قبل الرفع لتجنب حفظها كنصوص معطوبة
-    const cleanFeatures = Array.isArray(p.features)
-      ? p.features
-      : typeof p.features === "string"
-      ? (p.features as string).split("\n").map((s) => s.trim()).filter(Boolean)
-      : [];
-
-    await push(ref(db, "plans"), {
-      ...p,
-      features: cleanFeatures,
-    });
+    const current = plansRef.current;
+    const key = id ?? push(ref(db, "plans")).key!;
+    const updates: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(data)) updates[`plans/${key}/${field}`] = value;
+    if (!id) updates[`plans/${key}/order`] = current.length ? Math.max(...current.map((p) => p.order)) + 1 : 0;
+    if (data.featured) {
+      for (const p of current) if (p.id !== key && p.featured) updates[`plans/${p.id}/featured`] = false;
+    }
+    await update(ref(db), updates);
   }, []);
 
   const removePlan = useCallback(async (id: string) => {
     const db = await getDb();
     await remove(ref(db, `plans/${id}`));
+  }, []);
+
+  /** Moves a plan one step earlier (-1) or later (+1) in the pricing table. */
+  const movePlan = useCallback(async (id: string, dir: -1 | 1) => {
+    const list = [...plansRef.current];
+    const from = list.findIndex((p) => p.id === id);
+    const to = from + dir;
+    if (from < 0 || to < 0 || to >= list.length) return;
+    [list[from], list[to]] = [list[to], list[from]];
+    const updates: Record<string, number> = {};
+    list.forEach((p, i) => (updates[`plans/${p.id}/order`] = i));
+    const db = await getDb();
+    await update(ref(db), updates);
+  }, []);
+
+  /** Highlights one plan (or none when id is null). */
+  const setFeaturedPlan = useCallback(async (id: string | null) => {
+    const db = await getDb();
+    const updates: Record<string, boolean> = {};
+    for (const p of plansRef.current) updates[`plans/${p.id}/featured`] = p.id === id;
+    await update(ref(db), updates);
   }, []);
 
   return {
@@ -291,8 +289,11 @@ export function useSiteData() {
     loading,
     saveTexts,
     addProject,
+    updateProject,
     removeProject,
-    addPlan,
+    savePlan,
     removePlan,
+    movePlan,
+    setFeaturedPlan,
   };
 }
